@@ -1,6 +1,7 @@
 MIT License
 
 Copyright (c) 2026 dseditor (DSLab)
+Copyright (c) 2026 Victor Kao (LTX-2.5 port and security changes)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,5 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-The MIT license covers this repository's code and documents only. The models it
-downloads on Colab keep their own licenses (see README "授權與來源").
+The MIT license covers this repository's code and documents only. What it downloads
+on Colab keeps its own license: the LTX-2.5 weights (Lightricks) and the
+ComfyUI-LTXVideo node pack (Lightricks) are under the LTX-2 Community License
+Agreement; ComfyUI is under GPL-3.0. See README "授權與來源".
