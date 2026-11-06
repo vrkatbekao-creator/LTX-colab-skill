@@ -3,9 +3,9 @@
 import json, subprocess, sys, time
 from pathlib import Path
 
-JOB = Path("/content/h3job")
+JOB = Path("/content/ltxjob")
 status = JOB / "status.json"
-running = subprocess.run(["pgrep", "-f", "h3job/remote_job.py"], capture_output=True, text=True).stdout.strip()
+running = subprocess.run(["pgrep", "-f", "ltxjob/remote_job.py"], capture_output=True, text=True).stdout.strip()
 if running:
     print(json.dumps({"started": False, "reason": "a batch is already running", "pid": running}))
 else:

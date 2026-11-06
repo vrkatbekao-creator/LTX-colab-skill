@@ -12,6 +12,7 @@ It runs with the Python that `uv tool install google-colab-cli` created (it has 
 """
 import json
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -23,6 +24,13 @@ SCOPES = ["openid", "https://www.googleapis.com/auth/userinfo.profile", "https:/
           "https://www.googleapis.com/auth/cloud-platform", "https://www.googleapis.com/auth/colaboratory",
           "https://www.googleapis.com/auth/drive.file"]
 REDIRECT = "https://sdk.cloud.google.com/applicationdefaultauthcode.html"
+
+
+def write_private(path, text):
+    """The token (and the PKCE verifier) stay readable by this user only."""
+    path.write_text(text, encoding="utf-8")
+    if os.name != "nt":
+        path.chmod(stat.S_IRUSR | stat.S_IWUSR)
 
 
 def tool_python():
@@ -58,7 +66,7 @@ def main():
         flow = InstalledAppFlow.from_client_config(client_config(), SCOPES, autogenerate_code_verifier=True)
         flow.redirect_uri = REDIRECT
         url, state = flow.authorization_url(prompt="consent", token_usage="remote")
-        PENDING.write_text(json.dumps({"verifier": flow.code_verifier, "state": state}), encoding="utf-8")
+        write_private(PENDING, json.dumps({"verifier": flow.code_verifier, "state": state}))
         print("請用【有 Google AI Pro 訂閱】的帳號打開這個網址登入，按允許後，把頁面上顯示的授權碼貼回來：")
         print(url)
     elif cmd == "code":
@@ -71,7 +79,7 @@ def main():
                                                    code_verifier=pend["verifier"], autogenerate_code_verifier=False)
         flow.redirect_uri = REDIRECT
         flow.fetch_token(code=sys.argv[2].strip())
-        TOKEN.write_text(flow.credentials.to_json(), encoding="utf-8")
+        write_private(TOKEN, flow.credentials.to_json())
         PENDING.unlink(missing_ok=True)
         print("✅ 登入完成，token 存在", TOKEN)
     else:
