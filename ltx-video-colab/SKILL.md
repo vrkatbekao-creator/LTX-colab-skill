@@ -26,7 +26,7 @@ description: Generate videos with sound, and voice or sound clips (TTS), using L
 
 1. **會做什麼**：在使用者的 Google 帳號開一台 Colab GPU，裝 ComfyUI＋LTX-2.5，生成完把檔案下載回這台電腦，然後關掉 GPU。
 2. **要什麼訂閱**：至少 Google AI Pro（附 Colab 運算單元）。
-3. **花多少點**：L4 約每小時 1.5 點，G4 約 11 點。每次開機在 Colab 上下載約 40 GB 模型。LTX-2.5 在 L4 上的實際速度還沒實測，第一批先試一段 5 秒。
+3. **花多少點**：L4 約每小時 1.5 點，G4 約 11 點。AI Pro 每月固定有 200 點（效能等級同 Colab Pro，Colab Pro 本身是 100 點；以使用者帳號的 `ltxrun.py check` 實際餘額為準）。每次開機在 Colab 上下載約 40 GB 模型。LTX-2.5 在 L4 上的實際速度還沒實測，第一批先試一段 5 秒。
 4. **會從哪裡抓什麼**：GitHub 的 ComfyUI 和 Lightricks 官方的 ComfyUI-LTXVideo 節點組（都固定版本）；Hugging Face 的 Lightricks/LTX-2.5（固定版本）。全部下載到 Colab 上，不佔這台電腦的空間。
 5. **何時要登入**：只有第一次。給使用者一個 Google 網址，他登入、按允許、把授權碼貼回來。token 存在 `~/.config/colab-cli/token.json`，只有使用者自己讀得到。
 6. **授權**：LTX-2 Community License，年營收低於 1,000 萬美元的個人或公司可以免費商用；細節以 Lightricks 的 LICENSE 為準。

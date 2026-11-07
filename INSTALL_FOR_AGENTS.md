@@ -10,7 +10,7 @@ Before installing anything, explain in the user's language:
    clips with Lightricks' LTX-2.5 on **the user's own Google Colab GPU**. You write the prompts; Colab does the
    work; the files come back to this computer; the GPU is released afterwards. It cannot make still images.
 2. **Subscription**: at least **Google AI Pro** (it includes Colab compute units).
-3. **Cost**: L4 is about 1.5 units per hour, G4 about 11 units per hour. AI Pro gives about 400 units a month.
+3. **Cost**: L4 is about 1.5 units per hour, G4 about 11 units per hour. AI Pro gives 200 units a month (fixed monthly allotment, twice a Colab Pro plan).
    Every start installs ComfyUI and downloads about 40 GB of models **on Colab**, not on this computer.
    Speed on L4 has not been measured yet: the first run should be one 5-second 480P clip.
 4. **What gets installed on this computer**: `uv` 0.13.7, Python 3.12 and Google's `google-colab-cli` 0.7.4
