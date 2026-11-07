@@ -349,6 +349,13 @@ def run(args):
     finished = False
     try:
         remote_exec(session, f"import os\nos.makedirs('{REMOTE_DIR}/inputs', exist_ok=True)\nprint('ok')")
+        hf_token = (os.environ.get("HF_TOKEN") or "").strip()
+        if hf_token:  # gated LTX-2.5 repo: put the token on the VM (mode 600, never printed, not in out/)
+            remote_exec(session, "import os\n"
+                        f"fd = os.open('{REMOTE_DIR}/.hf_token', os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)\n"
+                        f"os.write(fd, {hf_token!r}.encode())\nos.close(fd)")
+        else:
+            print("⚠️ 沒有 HF_TOKEN 環境變數：LTX-2.5 是受限模型，下載可能被拒絕", flush=True)
         for f in ("remote_job.py", "ltx_graph.py"):
             colab("upload", "-s", session, REMOTE / f, f"{REMOTE_DIR}/{f}")
         manifest_tmp = Path(tempfile.gettempdir()) / f"{session}_manifest.json"

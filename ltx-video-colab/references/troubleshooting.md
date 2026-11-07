@@ -45,6 +45,7 @@
 | `遠端回報了不合規的檔名，不下載` | VM 回報的檔名不是 `<id>.mp4`／`<id>.wav`。這不該發生：`stop` 這台，重開再跑；一再出現就不要再用這台機器 |
 | `that job has not produced a file` | `@id` 指向的 job 排在後面或失敗了 |
 | 進度一直停在 `models` | 第一次要下載約 40 GB；超過 15 分鐘看 Hugging Face 狀態 |
+| `models` 失敗，錯誤是 `401 … gated repo` | LTX-2.5 是受限模型：請使用者在 https://huggingface.co/Lightricks/LTX-2.5 同意條款、建立 Read 權杖，並在自己的終端機設定環境變數 `HF_TOKEN`（Windows：`setx HF_TOKEN "<權杖>"` 後開新終端機）。不要請使用者把權杖貼到對話裡 |
 
 ## 想看遠端的完整紀錄
 ```

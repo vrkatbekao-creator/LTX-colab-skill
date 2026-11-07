@@ -108,11 +108,14 @@ def install():
 # ---------------------------------------------------------------- 2 models
 def download():
     from huggingface_hub import hf_hub_download
+    # LTX-2.5 is a gated Hugging Face repo: the local ltxrun.py writes the user's read token here (HF_TOKEN env var)
+    tf = JOB / ".hf_token"
+    token = tf.read_text().strip() if tf.is_file() else None
     for name, folder in MODELS:
         target = COMFY / "models" / folder / Path(name).name
         target.parent.mkdir(parents=True, exist_ok=True)
         if not target.is_file():
-            got = Path(hf_hub_download(repo_id=LTX_REPO, filename=name, revision=LTX_REVISION, local_dir="/content/hf"))
+            got = Path(hf_hub_download(repo_id=LTX_REPO, filename=name, revision=LTX_REVISION, local_dir="/content/hf", token=token))
             shutil.move(str(got), str(target))
         log(f"model ready: {target.name} ({target.stat().st_size / 2**30:.1f} GiB)")
 
