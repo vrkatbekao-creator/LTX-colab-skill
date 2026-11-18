@@ -322,7 +322,7 @@ def spec_summary(m, gpu):
     return (f"影片 {len(vids)} 段（文字 {modes['text']}、起始圖 {modes['image']}、首尾格 {modes['frames']}、"
             f"設定表 {modes['ref']}（固定 960×544，不放大），其中延伸 {ext}），"
             f"共 {secs:g} 秒，解析度 {'/'.join(res)}，比例 {'/'.join(shapes)}；配音 {len(tts)} 段，GPU {gpu}"
-            "（LTX-2.5 在這台 GPU 上的速度還沒實測，第一批請先試一段 5 秒）")
+            "（L4 480P 實測一段 5～7 秒約 75～110 秒；720P 以上或 G4 還沒實測，先試一段）")
 
 
 def run(args):
