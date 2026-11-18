@@ -37,7 +37,7 @@ REMOTE = SKILL / "remote"
 REMOTE_DIR = "/content/ltxjob"
 GPUS = ("L4", "G4", "A100", "H100")   # colab-cli turns an unknown name into A100 without a word: only these pass
 TYPES = ("video", "tts")
-MODES = ("text", "image", "frames")
+MODES = ("text", "image", "frames", "ref")
 EXT = {"video": ".mp4", "tts": ".wav"}
 RESOLUTIONS = ("480P", "720P", "1080P")
 ASPECTS = ("16:9", "9:16")
@@ -165,7 +165,7 @@ def watchdog(session):
 
 
 # ---------------------------------------------------------------- manifest
-FILE_KEYS = ("image", "first", "last", "extend")
+FILE_KEYS = ("image", "first", "last", "extend", "ref_sheet")
 
 
 def inside(base, rel):
@@ -216,6 +216,19 @@ def load_manifest(path):
             j["extend"] = "@" + str(j["extend"])
         if mode == "image" and not j.get("image") and not j.get("extend"):
             problems.append(f"{jid}：mode image 要有 image（起始圖）")
+        if mode == "ref" and not j.get("ref_sheet"):
+            problems.append(f"{jid}：mode ref 要有 ref_sheet（角色設定表）")
+        if mode == "ref" and (j.get("extend") or j.get("first") or j.get("last")):
+            problems.append(f"{jid}：mode ref 只能搭配 image（起始圖），不能用 extend／first／last")
+        if mode != "ref" and j.get("ref_sheet"):
+            problems.append(f"{jid}：ref_sheet 只能用在 mode ref")
+        for k, lo, hi in (("ref_strength", 0.0, 1.0), ("ref_lora_strength", 0.0, 2.0)):
+            if k in j:
+                try:
+                    if not lo <= float(j[k]) <= hi:
+                        problems.append(f"{jid}：{k} 要在 {lo:g}–{hi:g} 之間")
+                except (TypeError, ValueError):
+                    problems.append(f"{jid}：{k} 要是數字")
         if mode == "frames" and not (j.get("first") or j.get("last")):
             problems.append(f"{jid}：mode frames 至少要有 first 或 last")
         if j.get("extend") and (j.get("first") or j.get("last") or j.get("image")):
@@ -306,7 +319,8 @@ def spec_summary(m, gpu):
     res = sorted({j.get("resolution") or "-" for j in vids})
     modes = {k: sum(1 for j in vids if j.get("mode") == k) for k in MODES}
     ext = sum(1 for j in vids if j.get("extend"))
-    return (f"影片 {len(vids)} 段（文字 {modes['text']}、起始圖 {modes['image']}、首尾格 {modes['frames']}，其中延伸 {ext}），"
+    return (f"影片 {len(vids)} 段（文字 {modes['text']}、起始圖 {modes['image']}、首尾格 {modes['frames']}、"
+            f"設定表 {modes['ref']}（固定 960×544，不放大），其中延伸 {ext}），"
             f"共 {secs:g} 秒，解析度 {'/'.join(res)}，比例 {'/'.join(shapes)}；配音 {len(tts)} 段，GPU {gpu}"
             "（LTX-2.5 在這台 GPU 上的速度還沒實測，第一批請先試一段 5 秒）")
 

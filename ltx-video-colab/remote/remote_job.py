@@ -40,6 +40,10 @@ LTXNODES_COMMIT = "220e1d45aa0469f518e982102fca4dca92a61862"
 LTXNODES = COMFY / "custom_nodes" / "ComfyUI-LTXVideo"
 LTX_REPO = "Lightricks/LTX-2.5"
 LTX_REVISION = "49b093a39c19169a8a81721dcc541e07e945232f"
+# Ingredients (reference-sheet) IC-LoRA, fetched only when a job uses mode "ref". Gated like LTX-2.5 itself.
+REF_REPO = "Lightricks/LTX-2.5-22b-IC-LoRA-Ingredients"
+REF_REVISION = "5f83f6f7e5e6cd6eadfade02a57f03b9212d6434"
+REF_SHA256 = "ff873a5beada3c579a8137c7c53343916f78bcc9a529ba910143073fe8715e95"
 MODELS = [  # (file in the LTX-2.5 repo, ComfyUI models/ subfolder)
     ("diffusion_models/" + ltx_graph.MODELS["unet"], "diffusion_models"),
     ("text_encoders/" + ltx_graph.MODELS["clip"], "text_encoders"),
@@ -118,6 +122,27 @@ def download():
             got = Path(hf_hub_download(repo_id=LTX_REPO, filename=name, revision=LTX_REVISION, local_dir="/content/hf", token=token))
             shutil.move(str(got), str(target))
         log(f"model ready: {target.name} ({target.stat().st_size / 2**30:.1f} GiB)")
+
+
+def download_ref_lora():
+    import hashlib
+    from huggingface_hub import hf_hub_download
+    tf = JOB / ".hf_token"
+    token = tf.read_text().strip() if tf.is_file() else None
+    target = COMFY / "models" / "loras" / ltx_graph.REF_LORA
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.is_file():
+        got = Path(hf_hub_download(repo_id=REF_REPO, filename=ltx_graph.REF_LORA, revision=REF_REVISION,
+                                   local_dir="/content/hf", token=token))
+        h = hashlib.sha256()
+        with open(got, "rb") as f:
+            for block in iter(lambda: f.read(1 << 24), b""):
+                h.update(block)
+        if h.hexdigest() != REF_SHA256:
+            got.unlink()
+            raise RuntimeError(f"{ltx_graph.REF_LORA}: sha256 mismatch, file removed")
+        shutil.move(str(got), str(target))
+    log(f"model ready: {target.name} ({target.stat().st_size / 2**30:.1f} GiB)")
 
 
 # ---------------------------------------------------------------- 3 server
@@ -228,6 +253,22 @@ def run_video(j):
         if j.get("last"):
             last = to_comfy_input(source_file(j["last"]), f"ltxskill_{jid}_last{Path(j['last']).suffix}")
     seed = int(j["seed"]) if j.get("seed") is not None else int.from_bytes(os.urandom(6), "big")
+    if mode == "ref":
+        sheet = to_comfy_input(source_file(j["ref_sheet"]), f"ltxskill_{jid}_sheet{Path(j['ref_sheet']).suffix}")
+        if j.get("image"):
+            first = to_comfy_input(source_file(j["image"]), f"ltxskill_{jid}_image{Path(j['image']).suffix}")
+        graph = ltx_graph.build_ref(j["prompt"], j.get("seconds", 5), j.get("aspect", "16:9"), seed, sheet,
+                                    first=first, negative=j.get("negative"),
+                                    lora_strength=j.get("ref_lora_strength", 1.3),
+                                    guide_strength=j.get("ref_strength", 1.0), prefix=f"ltxskill/{jid}")
+        clip = run_graph(graph, int(j.get("timeout", 2400)))
+        # ComfyUI only warns (it does not fail) when LoRA keys cannot be applied: surface those lines
+        notes = [ln.strip()[:200] for ln in Path("/content/comfyui.log").read_text(errors="ignore").splitlines()
+                 if re.search(r"lora|not loaded|quant", ln, re.I)]
+        log(f"{jid}: comfyui lora lines: {len(notes)}")
+        for ln in notes[-6:]:
+            log(f"  {ln}")
+        return clip, {"seed": seed, "mode": mode}
     graph = ltx_graph.build(mode, j["prompt"], j.get("seconds", 5), j["resolution"], j.get("aspect", "16:9"), seed,
                             first=first, last=last, negative=j.get("negative"), prefix=f"ltxskill/{jid}")
     clip = run_graph(graph, int(j.get("timeout", 2400)))
@@ -279,6 +320,8 @@ def main():
     install()
     log("models: downloading what is missing", "models")
     download()
+    if any(j.get("mode") == "ref" for j in jobs):
+        download_ref_lora()
     start_comfy()
     STATE["stage"] = "generating"
     for j in jobs:

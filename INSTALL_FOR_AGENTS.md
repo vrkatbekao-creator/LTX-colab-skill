@@ -27,12 +27,14 @@ Before installing anything, explain in the user's language:
    set by the user as the `HF_TOKEN` environment variable on this computer; `ltxrun.py` copies it to the Colab VM
    (a mode-600 file, never printed, not downloaded back) and the VM deletes it when it stops. Never ask the user
    to paste the token into the chat.
+   The optional character-sheet mode (`ref`) also downloads Lightricks/LTX-2.5-22b-IC-LoRA-Ingredients, a second
+   gated repo: the user accepts its terms separately on that page (same token). It is only fetched when a job uses it.
 
 Only continue after the user agrees.
 
 ## Step 2: Install
 
-Clone (or download) `https://github.com/vrkatbekao-creator/h3-colab-skill`, read the two install scripts before
+Clone (or download) `https://github.com/vrkatbekao-creator/LTX-colab-skill`, read the two install scripts before
 running them, then:
 
 - Windows (PowerShell): `powershell -ExecutionPolicy Bypass -File install\install.ps1`

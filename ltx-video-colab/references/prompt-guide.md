@@ -28,6 +28,14 @@
 ### `frames` 模式
 - 首尾格用同樣的比例、相似的光線；描述的是**兩格之間的動作**。
 
+### `ref` 模式（角色設定表）
+- 設定表要乾淨：一個角色、純色背景、**沒有文字和標註線**。建議三格並排：臉部特寫｜正面｜側面，存成 16:9（960×544）。
+- 提示詞用**設定表上的位置**指人：`The young man from the reference sheet (face close-up on the left, front view in the middle, side view on the right) ...`，再照樣寫年齡、髮型、服裝。
+- 有起始圖時，開頭照 `image` 模式寫 `Use the provided start image as the first frame.`
+- 負面提示加上 `character sheet, split screen, plain grey background, double exposure`，避免成品變成設定表本身或兩張疊在一起。
+- 寫 `One single person in the frame`，不然設定表上的正面、側面可能被畫成兩個人。
+- 這個模式會壓住動作：大轉頭、光線變化要寫得更明確，或接受動作比較少。
+
 ### `extend`
 - 程式會拿上一段的最後一格當起始圖，所以照 `image` 模式寫，只寫接下來發生什麼。
 - 人物外觀、光線、聲音的描述要跟上一段一致，接起來才不會跳。

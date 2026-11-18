@@ -24,4 +24,5 @@ SOFTWARE.
 The MIT license covers this repository's code and documents only. What it downloads
 on Colab keeps its own license: the LTX-2.5 weights (Lightricks) and the
 ComfyUI-LTXVideo node pack (Lightricks) are under the LTX-2 Community License
-Agreement; ComfyUI is under GPL-3.0. See README "授權與來源".
+Agreement; the optional Ingredients IC-LoRA (Lightricks) is under the license on its
+model page; ComfyUI is under GPL-3.0. See README "授權與來源".

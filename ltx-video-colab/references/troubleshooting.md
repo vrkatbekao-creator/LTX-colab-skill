@@ -45,6 +45,9 @@
 | `遠端回報了不合規的檔名，不下載` | VM 回報的檔名不是 `<id>.mp4`／`<id>.wav`。這不該發生：`stop` 這台，重開再跑；一再出現就不要再用這台機器 |
 | `that job has not produced a file` | `@id` 指向的 job 排在後面或失敗了 |
 | 進度一直停在 `models` | 第一次要下載約 40 GB；超過 15 分鐘看 Hugging Face 狀態 |
+| `models` 失敗，錯誤是 `403 … not in the authorized list`（`ref` 模式） | 設定表 LoRA 是另一個受限模型：請使用者到 https://huggingface.co/Lightricks/LTX-2.5-22b-IC-LoRA-Ingredients 按「Agree and access repository」。權杖不用換；同意後可能要等一兩分鐘才生效 |
+| `ref` 模式的成品就是設定表本身（灰底、幾個人並排） | LoRA 沒發揮作用。`ref_lora_strength` 用預設 1.3，不要調到 1.0 以下；看進度紀錄裡 `comfyui lora lines`：`LTXAV ... N patches attached` 的 N 應該大於 0 |
+| `ref` 模式開頭兩張畫面疊在一起，接著換成別的人 | 同上，LoRA 強度不夠；也可以在負面提示加 `double exposure, character sheet` |
 | `models` 失敗，錯誤是 `401 … gated repo` | LTX-2.5 是受限模型：請使用者在 https://huggingface.co/Lightricks/LTX-2.5 同意條款、建立 Read 權杖，並在自己的終端機設定環境變數 `HF_TOKEN`（Windows：`setx HF_TOKEN "<權杖>"` 後開新終端機）。不要請使用者把權杖貼到對話裡 |
 
 ## 想看遠端的完整紀錄

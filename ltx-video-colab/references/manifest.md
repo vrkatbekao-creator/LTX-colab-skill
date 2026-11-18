@@ -1,6 +1,6 @@
 # manifest.json
 
-放在工作資料夾裡；`image`／`first`／`last`／`extend` 的路徑都**相對於 manifest 所在的資料夾**，而且必須在這個資料夾裡面（不能用絕對路徑、`..` 或指到外面的捷徑，否則不會開機）。
+放在工作資料夾裡；`image`／`first`／`last`／`extend`／`ref_sheet` 的路徑都**相對於 manifest 所在的資料夾**，而且必須在這個資料夾裡面（不能用絕對路徑、`..` 或指到外面的捷徑，否則不會開機）。
 成品下載到同一個資料夾的 `out/`：影片 `<id>.mp4`，配音 `<id>.wav`，總結在 `out/results.json`。
 
 ```json
@@ -19,6 +19,11 @@
      "first": "inputs/door_closed.png", "last": "inputs/door_open.png",
      "prompt": "...", "seconds": 4, "aspect": "16:9"},
 
+    {"id": "shot03", "type": "video", "mode": "ref",
+     "ref_sheet": "inputs/sheet_lin.png", "image": "inputs/lin_desk.png",
+     "prompt": "Use the provided start image as the first frame. The young woman from the reference sheet (face close-up on the left, front view in the middle, side view on the right) ...",
+     "seconds": 10, "aspect": "16:9"},
+
     {"id": "establish", "type": "video", "mode": "text",
      "prompt": "Wide shot of a quiet library at dusk ...", "seconds": 5},
 
@@ -35,21 +40,26 @@
 | `id` | 全部 | 英數、`-`、`_`（1–60 字）；也是輸出檔名 |
 | `type` | 全部 | `video`（預設）或 `tts` |
 | `prompt` | 全部 | 見 prompt-guide.md |
-| `mode` | video | `text`（預設）、`image`、`frames` |
-| `image` | video(image) | 起始圖 |
+| `mode` | video | `text`（預設）、`image`、`frames`、`ref` |
+| `image` | video(image／ref) | 起始圖；在 `ref` 模式是選用的 |
+| `ref_sheet` | video(ref) | 角色設定表（必填）。每一格都拿它當參考，不會變成第一格 |
+| `ref_lora_strength` | video(ref) | 設定表 LoRA 的強度，0–2，預設 1.3（官方範例值）。太低（例如 1.0）時，成品會直接照抄設定表 |
+| `ref_strength` | video(ref) | 設定表參考的強度，0–1，預設 1.0。調低可能讓動作多一點、臉的一致性少一點（還沒實測） |
 | `first`／`last` | video(frames) | 首格／尾格，至少一張 |
 | `extend` | video | 前面某個影片 job 的 `id`（同一批），或一支影片檔路徑；會拿它的最後一格當起始圖，成品自動接在原片後面。不能和 `image`／`first`／`last` 一起用 |
 | `seconds` | 全部 | 2–20（預設 5） |
 | `aspect` | video | `16:9`（預設）、`9:16` |
-| `resolution` | video | `480P`、`720P`、`1080P`；不給就看 GPU（L4 480P，G4 720P） |
+| `resolution` | video | `480P`、`720P`、`1080P`；不給就看 GPU（L4 480P，G4 720P）。`ref` 模式不看這欄，固定 960×544（直式 544×960） |
 | `negative` | 全部 | 不想要的東西；不給就用官方範本的預設 |
 | `seed` | 全部 | 不給就隨機；要重現就固定 |
 | `timeout` | 全部 | 單段最多等幾秒（影片預設 2400，配音 900） |
 
 `tts` 只吃文字：放了 `image`、`voices` 之類的檔案欄位會被拒絕（不支援參考聲音）。
 
+`ref` 模式只能搭配 `image`，不能用 `extend`／`first`／`last`。它是單階段生成（8 步、不放大），在 L4 上 10 秒約 6 分鐘，比 `image` 模式慢約 4.5 倍。
+
 ## 一批的順序與 `@id`
-同一批依序執行。`image`、`first`、`last`、`extend` 可以寫 `@<id>`，意思是「**用這一批裡前面那個影片 job 的成品**」（取它的最後一格）。`extend` 寫裸的 `id` 也可以，會自動當成 `@id`。
+同一批依序執行。`image`、`first`、`last`、`extend`、`ref_sheet` 可以寫 `@<id>`，意思是「**用這一批裡前面那個影片 job 的成品**」（取它的最後一格）。`extend` 寫裸的 `id` 也可以，會自動當成 `@id`。
 被引用的 job 一定要排在前面、而且是影片；引用配音（`tts`）會被拒絕。被引用的 job 失敗時，這一段也會失敗（其他段照跑）。
 
 ## 續跑

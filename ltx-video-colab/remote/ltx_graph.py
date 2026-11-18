@@ -142,6 +142,72 @@ def _frames(g, w, h, n, seed, first, last):
     _decode(g, ["crop", 2], ["sep1", 1])
 
 
+REF_LORA = "ltx-2.5-22b-ic-lora-ingredients-0.9.safetensors"
+REF_SIZES = {"16:9": (960, 544), "9:16": (544, 960)}
+
+
+def build_ref(prompt, seconds, aspect, seed, sheet, first=None, negative=None, lora_strength=1.3,
+              guide_strength=1.0, prefix="ltxskill/out"):
+    """Reference-sheet video (Lightricks' Ingredients IC-LoRA). Rebuilt from ComfyUI-LTXVideo
+    example_workflows/2.5/LTX-2.5_ICLoRA_Ingredients_Single_Stage_Distilled.json at the pinned commit:
+    one stage, 8 distilled steps, CFG 1, euler_ancestral; the sheet is repeated on every frame and added as an
+    IC-LoRA guide (LTXAddVideoICLoRAGuide), and the guide frames are cropped out (LTXVCropGuides) before decoding.
+    The sheet is not the opening frame; `first` optionally adds a start image as well (our addition, using the
+    same in-place image conditioning as `image` mode). Needs Lightricks' ComfyUI-LTXVideo node pack."""
+    if aspect not in REF_SIZES:
+        raise ValueError(f"ref mode supports aspect {list(REF_SIZES)}")
+    w, h = REF_SIZES[aspect]
+    n = frame_count(seconds)
+    g = {
+        "unet": {"class_type": "UNETLoader", "inputs": {"unet_name": MODELS["unet"], "weight_dtype": "default"}},
+        "lora": {"class_type": "LTXICLoRALoaderModelOnly",
+                 "inputs": {"model": ["unet", 0], "lora_name": REF_LORA, "strength_model": float(lora_strength)}},
+        "clip": {"class_type": "CLIPLoader", "inputs": {"clip_name": MODELS["clip"], "type": "ltxv", "device": "default"}},
+        "vae": {"class_type": "VAELoader", "inputs": {"vae_name": MODELS["vae"]}},
+        "avae": {"class_type": "VAELoader", "inputs": {"vae_name": MODELS["audio_vae"]}},
+        "pos": {"class_type": "CLIPTextEncode", "inputs": {"text": prompt, "clip": ["clip", 0]}},
+        "neg": {"class_type": "CLIPTextEncode", "inputs": {"text": negative or NEGATIVE, "clip": ["clip", 0]}},
+        "cond": {"class_type": "LTXVConditioning",
+                 "inputs": {"positive": ["pos", 0], "negative": ["neg", 0], "frame_rate": float(FPS)}},
+        "lat_a": {"class_type": "LTXVEmptyLatentAudio",
+                  "inputs": {"frames_number": n, "frame_rate": FPS, "batch_size": 1, "audio_vae": ["avae", 0]}},
+        "lat_v": {"class_type": "EmptyLTXVLatentVideo", "inputs": {"width": w, "height": h, "length": n, "batch_size": 1}},
+        "sheet": {"class_type": "LoadImage", "inputs": {"image": sheet}},
+        "sheet_s": {"class_type": "ImageScale",
+                    "inputs": {"image": ["sheet", 0], "upscale_method": "lanczos", "width": w, "height": h, "crop": "center"}},
+        "sheet_rep": {"class_type": "RepeatImageBatch", "inputs": {"image": ["sheet_s", 0], "amount": n}},
+    }
+    video_latent = ["lat_v", 0]
+    if first:
+        img = _image_in(g, "img", first, {"class_type": "ImageScale",
+                                          "inputs": {"upscale_method": "lanczos", "width": w, "height": h, "crop": "center"}})
+        g["i2v"] = {"class_type": "LTXVImgToVideoInplace",
+                    "inputs": {"vae": ["vae", 0], "image": img, "latent": video_latent, "strength": 1.0, "bypass": False}}
+        video_latent = ["i2v", 0]
+    g["guide"] = {"class_type": "LTXAddVideoICLoRAGuide",
+                  "inputs": {"positive": ["cond", 0], "negative": ["cond", 1], "vae": ["vae", 0], "latent": video_latent,
+                             "image": ["sheet_rep", 0], "frame_idx": 0, "strength": float(guide_strength),
+                             "latent_downscale_factor": ["lora", 1], "crop": "disabled", "use_tiled_encode": False,
+                             "tile_size": 256, "tile_overlap": 64}}
+    g["av"] = {"class_type": "LTXVConcatAVLatent", "inputs": {"video_latent": ["guide", 2], "audio_latent": ["lat_a", 0]}}
+    g["noise"] = {"class_type": "RandomNoise", "inputs": {"noise_seed": int(seed)}}
+    g["cfg"] = {"class_type": "CFGGuider",
+                "inputs": {"model": ["lora", 0], "positive": ["guide", 0], "negative": ["guide", 1], "cfg": 1.0}}
+    g["sampler"] = {"class_type": "KSamplerSelect", "inputs": {"sampler_name": "euler_ancestral"}}
+    g["sigmas"] = {"class_type": "ManualSigmas", "inputs": {"sigmas": SIGMAS_STAGE1}}
+    g["run"] = {"class_type": "SamplerCustomAdvanced",
+                "inputs": {"noise": ["noise", 0], "guider": ["cfg", 0], "sampler": ["sampler", 0],
+                           "sigmas": ["sigmas", 0], "latent_image": ["av", 0]}}
+    g["sep"] = {"class_type": "LTXVSeparateAVLatent", "inputs": {"av_latent": ["run", 0]}}
+    g["crop"] = {"class_type": "LTXVCropGuides",
+                 "inputs": {"positive": ["guide", 0], "negative": ["guide", 1], "latent": ["sep", 0]}}
+    _decode(g, ["crop", 2], ["sep", 1])
+    g["vid"] = {"class_type": "CreateVideo", "inputs": {"images": ["dec", 0], "audio": ["adec", 0], "fps": float(FPS)}}
+    g["save"] = {"class_type": "SaveVideo",
+                 "inputs": {"video": ["vid", 0], "filename_prefix": prefix, "format": "mp4", "format.codec": "auto"}}
+    return g
+
+
 def build_tts(prompt, seconds, seed, negative=None, prefix="ltxskill/out"):
     """Text to audio (speech, sound effects, ambience), no picture. Follows Lightricks' official T2A example
     (ComfyUI-LTXVideo example_workflows/2.3/LTX-2.3_T2A_Single_Stage_Distilled.json): one stage, 8 distilled

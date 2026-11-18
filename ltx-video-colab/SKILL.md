@@ -1,6 +1,6 @@
 ---
 name: ltx-video-colab
-description: Generate videos with sound, and voice or sound clips (TTS), using LTX-2.5 on the user's own Google Colab GPU, driven from this computer through google-colab-cli. Use when the user asks to 生成影片／延伸影片／把分鏡做成影片／用一張圖做成影片／配音／旁白／音效, or wants clips made from text, a start image, or first/last frames. Colab only (needs Google AI Pro; the user's computer needs no GPU).
+description: Generate videos with sound, and voice or sound clips (TTS), using LTX-2.5 on the user's own Google Colab GPU, driven from this computer through google-colab-cli. Use when the user asks to 生成影片／延伸影片／把分鏡做成影片／用一張圖做成影片／用角色設定表固定角色／配音／旁白／音效, or wants clips made from text, a start image, first/last frames, or a character reference sheet. Colab only (needs Google AI Pro; the user's computer needs no GPU).
 ---
 
 # LTX-2.5 影片與配音（Colab GPU）
@@ -14,9 +14,10 @@ description: Generate videos with sound, and voice or sound clips (TTS), using L
 | `video` + `image` | 一張起始圖往下演 |
 | `video` + `frames` | 指定首格、尾格，或兩者都給 |
 | `video` + `extend` | 接著前一段往下演，自動接回原片 |
+| `video` + `ref` | 依角色設定表（Ingredients IC-LoRA）生成，每一格都參考設定表；可再加一張起始圖 |
 | `tts` | 只要聲音：說話、旁白、音效、環境音 |
 
-**做不到的**（要用的話請使用者另找工具）：生圖／改圖、多張參考圖鎖角色、參考聲音的音色（固定某個人的聲音）。
+**做不到的**（要用的話請使用者另找工具）：生圖／改圖、訓練自己的角色或畫風 LoRA、參考聲音的音色（固定某個人的聲音）。
 
 ---
 
@@ -27,7 +28,7 @@ description: Generate videos with sound, and voice or sound clips (TTS), using L
 1. **會做什麼**：在使用者的 Google 帳號開一台 Colab GPU，裝 ComfyUI＋LTX-2.5，生成完把檔案下載回這台電腦，然後關掉 GPU。
 2. **要什麼訂閱**：至少 Google AI Pro（附 Colab 運算單元）。
 3. **花多少點**：L4 約每小時 1.5 點，G4 約 11 點。AI Pro 每月固定有 200 點（效能等級同 Colab Pro，Colab Pro 本身是 100 點；以使用者帳號的 `ltxrun.py check` 實際餘額為準）。每次開機在 Colab 上下載約 40 GB 模型。LTX-2.5 在 L4 上的實際速度還沒實測，第一批先試一段 5 秒。
-4. **會從哪裡抓什麼**：GitHub 的 ComfyUI 和 Lightricks 官方的 ComfyUI-LTXVideo 節點組（都固定版本）；Hugging Face 的 Lightricks/LTX-2.5（固定版本）。全部下載到 Colab 上，不佔這台電腦的空間。
+4. **會從哪裡抓什麼**：GitHub 的 ComfyUI 和 Lightricks 官方的 ComfyUI-LTXVideo 節點組（都固定版本）；Hugging Face 的 Lightricks/LTX-2.5（固定版本）。用到 `ref` 模式時，另外抓 Lightricks/LTX-2.5-22b-IC-LoRA-Ingredients（1.2 GB，固定版本並核對 SHA256；這也是受限模型，要另外在它的頁面同意條款）。全部下載到 Colab 上，不佔這台電腦的空間。
 5. **何時要登入**：只有第一次。給使用者一個 Google 網址，他登入、按允許、把授權碼貼回來。token 存在 `~/.config/colab-cli/token.json`，只有使用者自己讀得到。
 6. **授權**：LTX-2 Community License，年營收低於 1,000 萬美元的個人或公司可以免費商用；細節以 Lightricks 的 LICENSE 為準。
 
@@ -76,8 +77,16 @@ python scripts/ltxrun.py check
 | 動作必須落在某個姿勢、換場要精準銜接 | `frames` |
 | 空景、氣氛、快速試想法 | `text` |
 | 「接著往下演」「再長一點」 | `extend` |
+| 角色要長時間維持同一張臉（長台詞、大特寫） | `ref`（設定表＋起始圖） |
 
-角色要在好幾段裡長得一樣：每段都用同一張角色圖當 `image` 或 `first`，並在提示詞裡把外觀寫得一致。LTX-2.5 沒有多參考圖鎖臉的功能。
+### 角色一致性
+LTX-2.5 只認得畫面，不會「看著照片畫臉」。只用文字描述的角色，每段都會是不同的人，年輕角色還常被畫老。
+
+1. **有臉的鏡頭一律給起始圖**（`image`）：把角色設定表的正面像去背，合成到場景裡當第一格，臉佔畫面高度至少 1/4。這是預設做法，快、畫質好、動作照提示詞走。
+2. **臉要在整段裡都不走樣**時，改用 `ref`：設定表在每一格都當參考，再加同一張起始圖。實測（L4、10 秒、含轉頭）：臉比純起始圖更穩、更接近設定表；但動作和光線變化會變少，生成時間約 4.5 倍，輸出固定 960×544、不經過放大。
+3. 只給設定表、不給起始圖的 `ref`：場景會照提示詞生成，但臉只是「像」，構圖也比較難控制。
+
+設定表要乾淨：一個角色、純色背景、沒有文字或標註線（臉部特寫｜正面｜側面並排最好）。標註文字和線條會被當成畫面的一部分。
 
 ### 什麼時候用 `tts`
 - 影片本身就會有聲音和對白；**只有需要獨立的聲音檔時**才用 `tts`：旁白、廣播劇、音效、要另外剪進去的台詞。
